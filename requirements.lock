@@ -1,0 +1,6 @@
+dependencies:
+- name: spark-history-server
+  repository: https://kubernetes-charts.storage.googleapis.com
+  version: 1.2.0
+digest: sha256:ea72bad4835277039d30fdd49c1e0edf2e7f1942be3cfbbe013bd7b8ba9f345f
+generated: "2020-06-04T16:51:31.464663+03:00"

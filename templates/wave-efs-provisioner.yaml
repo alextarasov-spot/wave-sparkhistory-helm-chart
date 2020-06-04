@@ -1,0 +1,139 @@
+{{- if .Values.enambleEfs }}
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: {{ .Values.efs.clusterRole}}
+rules:
+  - apiGroups: [""]
+    resources: ["persistentvolumes"]
+    verbs: ["get", "list", "watch", "create", "delete"]
+  - apiGroups: [""]
+    resources: ["persistentvolumeclaims"]
+    verbs: ["get", "list", "watch", "update"]
+  - apiGroups: ["storage.k8s.io"]
+    resources: ["storageclasses"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["create", "update", "patch"]
+  - apiGroups: [""]
+    resources: ["endpoints"]
+    verbs: ["get", "list", "watch", "create", "update", "patch"]
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: {{ .Values.efs.clusterRoleBinding}}
+subjects:
+  - kind: ServiceAccount
+    name: {{.Values.efs.provisioner}}
+    # replace with namespace where provisioner is deployed
+    namespace: {{.Values.sparkJobNamespace}}
+roleRef:
+  kind: ClusterRole
+  name: {{ .Values.efs.clusterRole}}
+  apiGroup: rbac.authorization.k8s.io
+---
+kind: Role
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: leader-locking-efs-provisioner
+rules:
+  - apiGroups: [""]
+    resources: ["endpoints"]
+    verbs: ["get", "list", "watch", "create", "update", "patch"]
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{.Values.efs.provisioner}}
+  namespace: {{.Values.sparkJobNamespace}}
+---
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: leader-locking-efs-provisioner
+subjects:
+  - kind: ServiceAccount
+    name: {{.Values.efs.provisioner}}
+    # replace with namespace where provisioner is deployed
+    namespace: {{.Values.sparkJobNamespace}}
+roleRef:
+  kind: Role
+  name: leader-locking-efs-provisioner
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{.Values.efs.provisioner}}
+  namespace: {{.Values.sparkJobNamespace}}
+data:
+  file.system.id: {{.Values.efs.fileSystemId}}
+  aws.region: {{.Values.efs.awsRegion}}
+  provisioner.name: {{.Values.efs.provisionerName}}
+---
+kind: Deployment
+apiVersion: extensions/v1beta1
+metadata:
+  name: {{.Values.efs.provisioner}}
+  namespace: {{.Values.sparkJobNamespace}}
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: {{.Values.efs.provisioner}}
+    spec:
+      serviceAccount: {{.Values.efs.provisioner}}
+      containers:
+        - name: {{.Values.efs.provisioner}}
+          image: quay.io/external_storage/efs-provisioner:latest
+          env:
+            - name: FILE_SYSTEM_ID
+              valueFrom:
+                configMapKeyRef:
+                  name: {{.Values.efs.provisioner}}
+                  key: file.system.id
+            - name: AWS_REGION
+              valueFrom:
+                configMapKeyRef:
+                  name: {{.Values.efs.provisioner}}
+                  key: aws.region
+            - name: PROVISIONER_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: {{.Values.efs.provisioner}}
+                  key: provisioner.name
+          volumeMounts:
+            - name: {{.Values.efs.volume.name}}
+              mountPath: /persistentvolumes
+      volumes:
+        - name: {{.Values.efs.volume.name}}
+          nfs:
+            server: {{.Values.efs.volume.nfs.server}}
+            path: {{.Values.efs.volume.nfs.path}}
+---
+kind: StorageClass
+apiVersion: storage.k8s.io/v1
+metadata:
+  name: {{.Values.efs.storageClass.name}}
+provisioner: {{.Values.efs.provisionerName}}
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: {{index .Values "spark-history-server" "pvc" "existingClaimName"}}
+  namespace: {{.Values.sparkJobNamespace}}
+  annotations:
+    volume.beta.kubernetes.io/storage-class: {{.Values.efs.storageClass.name}}
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 1Mi
+---
+{{- end }}

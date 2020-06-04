@@ -1,1 +1,30 @@
+sparkJobNamespace: "wave-applications"
+enambleEfs: false
+
+efs:
+  clusterRole: wave-efs-provisioner-runner
+  clusterRoleBinding: wave-run-efs-provisioner
+  provisionerName: wave.sparkhistory/aws-efs
+  provisioner: wave-efs-provisioner
+  storageClass:
+    name: wave-aws-efs
+  volume:
+    name: wave-historyserver-pv
+    nfs:
+      server:
+      path: "/"
+
 spark-history-server:
+  serviceAccount:
+    create: true
+    name:
+  image:
+    repository: lightbend/spark-history-server
+    tag: 2.4.0
+    pullPolicy: IfNotPresent
+  nfs:
+    enableExampleNFS: false
+  pvc:
+    enablePVC: true
+    existingClaimName: wave-spark-histort-nfs-pvc
+    eventsDir: "/"
