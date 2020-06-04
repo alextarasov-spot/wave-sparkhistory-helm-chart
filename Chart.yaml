@@ -1,0 +1,9 @@
+apiVersion: v2
+name: wave-sparkhistory
+description: A Helm chart for Spark History Server
+keywords:
+  - wave
+  - sparkhistory
+type: application
+version: 0.1.0
+appVersion: 1.0.0
