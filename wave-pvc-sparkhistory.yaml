@@ -1,0 +1,13 @@
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: wave-efs
+  namespace: "${SPARK_APPLICATIONS_NAMESPACE}"
+  annotations:
+    volume.beta.kubernetes.io/storage-class: "${WAVE_EFS_PROVISIONER_STORAGE_CLASS_NAME}"
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 1Mi
