@@ -1,7 +1,7 @@
 kind: PersistentVolumeClaim
 apiVersion: v1
 metadata:
-  name: "${WAVE-PVC-NAME}"
+  name: "${WAVE_PVC_NAME}"
   namespace: "${SPARK_APPLICATIONS_NAMESPACE}"
   annotations:
     volume.beta.kubernetes.io/storage-class: "${WAVE_EFS_PROVISIONER_STORAGE_CLASS_NAME}"
