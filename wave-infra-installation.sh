@@ -26,6 +26,9 @@ EFS_AWS_REGION=""
 #Spark History Server parameters
 SPARK_HISTORY_RELEASE_NAME="wave-history"
 
+#Spark Operator parameters
+SPARK_OPERATOR_RELEASE_NAME="wave-spark"
+
 #create necessarry createNamespaces
 function createNamespaces() {
   info "Going to create namespace $SPARK_OPERATOR_NAMESPACE"
@@ -140,7 +143,27 @@ function sparkHistory() {
 
   if [ $? -gt 0 ]; then
     printf "\n\n\t\t"
-    error "Spark Histroy Server not created. Please check the error message above"
+    error "Spark Histroy Server not installed. Please check the error message above"
+    return 1
+  fi
+}
+
+function sparkOperator() {
+  info "Going to install Spark Operator into $SPARK_OPERATOR_NAMESPACE namespace"
+  printf "\n"
+
+  helm repo add stable https://kubernetes-charts.storage.googleapis.com
+
+  helm repo add incubator http://storage.googleapis.com/kubernetes-charts-incubator
+
+  helm install $SPARK_OPERATOR_RELEASE_NAME incubator/sparkoperator \
+    --namespace $SPARK_OPERATOR_NAMESPACE \
+    --set sparkJobNamespace=$SPARK_APPLICATIONS_NAMESPACE \
+    --set enableWebhook=true
+
+  if [ $? -gt 0 ]; then
+    printf "\n\n\t\t"
+    error "Spark Operator not installed. Please check the error message above"
     return 1
   fi
 }
@@ -220,9 +243,10 @@ function init() {
 }
 
 function main() {
-  createNamespaces
-  efsProvisioner
-  sparkHistory
+  #createNamespaces
+  #efsProvisioner
+  #sparkHistory
+  sparkOperator
 }
 
 init "$@"
