@@ -243,9 +243,9 @@ function init() {
 }
 
 function main() {
-  #createNamespaces
-  #efsProvisioner
-  #sparkHistory
+  createNamespaces
+  efsProvisioner
+  sparkHistory
   sparkOperator
 }
 
