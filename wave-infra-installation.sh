@@ -29,6 +29,9 @@ SPARK_HISTORY_RELEASE_NAME="wave-history"
 #Spark Operator parameters
 SPARK_OPERATOR_RELEASE_NAME="wave-spark"
 
+#HELM dry-run mode
+DRY_RUN=false
+
 #create necessarry createNamespaces
 function createNamespaces() {
   info "Going to create namespace $SPARK_OPERATOR_NAMESPACE"
@@ -81,7 +84,8 @@ function efsProvisioner() {
 
   helm repo add stable https://kubernetes-charts.storage.googleapis.com
 
-  helm install $EFS_PROVISIONER_RELEASE_NAME stable/efs-provisioner --namespace $SPARK_APPLICATIONS_NAMESPACE \
+  helm install $EFS_PROVISIONER_RELEASE_NAME $($DRY_RUN && echo  "--dry-run --debug") stable/efs-provisioner \
+    --namespace $SPARK_APPLICATIONS_NAMESPACE \
     --set efsProvisioner.provisionerName=$EFS_PROVISIONER_NAME \
     --set serviceAccount.name=$EFS_PROVISIONER_SERVICE_ACCOUNT_NAME \
     --set efsProvisioner.storageClass.name=$WAVE_EFS_PROVISIONER_STORAGE_CLASS_NAME \
@@ -135,7 +139,7 @@ function sparkHistory() {
 
   helm repo add stable https://kubernetes-charts.storage.googleapis.com
 
-  helm install $SPARK_HISTORY_RELEASE_NAME stable/spark-history-server \
+  helm install $SPARK_HISTORY_RELEASE_NAME $($DRY_RUN && echo  "--dry-run --debug") stable/spark-history-server \
     --namespace $SPARK_APPLICATIONS_NAMESPACE \
     --set nfs.enableExampleNFS=false \
     --set pvc.enablePVC=$PVC_ENABLED \
@@ -152,11 +156,9 @@ function sparkOperator() {
   info "Going to install Spark Operator into $SPARK_OPERATOR_NAMESPACE namespace"
   printf "\n"
 
-  helm repo add stable https://kubernetes-charts.storage.googleapis.com
-
   helm repo add incubator http://storage.googleapis.com/kubernetes-charts-incubator
 
-  helm install $SPARK_OPERATOR_RELEASE_NAME incubator/sparkoperator \
+  helm install $SPARK_OPERATOR_RELEASE_NAME $($DRY_RUN && echo  "--dry-run --debug") incubator/sparkoperator \
     --namespace $SPARK_OPERATOR_NAMESPACE \
     --set sparkJobNamespace=$SPARK_APPLICATIONS_NAMESPACE \
     --set enableWebhook=true
@@ -232,6 +234,10 @@ function init() {
       ;;
     --pvcEnabled)
       PVC_ENABLED="$2"
+      shift
+      ;;
+    --dryRun)
+      DRY_RUN="$2"
       shift
       ;;
     *)
