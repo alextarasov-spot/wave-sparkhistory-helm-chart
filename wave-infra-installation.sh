@@ -16,7 +16,7 @@ WAVE_PVC_NAME="wave-efs"
 
 EFS_PROVISIONER_RELEASE_NAME="wave-nfs"
 EFS_PROVISIONER_SERVICE_ACCOUNT_NAME="wave-efs-provosioner"
-EFS_PROVISIONER_NAME=" wave.sparkhistory/aws-efs"
+EFS_PROVISIONER_NAME="wave.sparkhistory/aws-efs"
 WAVE_EFS_PROVISIONER_STORAGE_CLASS_NAME="wave-aws-efs"
 
 #EFS provosioner MANDATORY parameters
@@ -49,7 +49,7 @@ function createNamespaces() {
   fi
 
   printf "\n"
-  info "Going tp create namespace $SPARK_APPLICATIONS_NAMESPACE"
+  info "Going to create namespace $SPARK_APPLICATIONS_NAMESPACE"
 
   # verify that the SPARK_APPLICATIONS_NAMESPACE namespace doesn't  exists
   ns=$(kubectl get namespace $SPARK_APPLICATIONS_NAMESPACE --no-headers --output=go-template={{.metadata.name}} 2>/dev/null)
@@ -87,7 +87,7 @@ function efsProvisioner() {
 
   if [ $? -gt 0 ]; then
     printf "\n\n\t\t"
-    error "EFS Provisioner not installed. Please check the error message above"
+    error "ERROR: EFS Provisioner not installed. Please check the error message above"
     exit 1
   fi
 
