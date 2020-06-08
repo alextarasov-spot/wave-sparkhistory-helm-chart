@@ -32,6 +32,9 @@ SPARK_OPERATOR_RELEASE_NAME="wave-spark"
 #HELM dry-run mode
 DRY_RUN=false
 
+#UNINSTALL mode
+UNINSTALL=false
+
 #create necessarry createNamespaces
 function createNamespaces() {
   info "Going to create namespace $SPARK_OPERATOR_NAMESPACE"
@@ -173,11 +176,87 @@ function validation() {
       exit 1
     fi
   fi
+}
 
-  if [ -z "$EFS_FILESYSTEM_ID" ]; then
-      error "ERROR: efsProvisioner.efsFileSystemId is empty EXIT"
-      exit 1
-    fi
+function uninstall() {
+  if [ "$UNINSTALL" = false ]; then
+    return 0
+  fi
+
+  warn "WARNING: You gonna uninstall all necessarry resources!"
+
+  echo "Do you want to uninstall?"
+
+  select yn in "Yes" "No"; do
+    case $yn in
+    Yes)
+      uninstallSparkOperator
+      uninstallSparkHistory
+      uninstallEfsProvisioner
+      break
+      ;;
+    No) exit ;;
+    esac
+  done
+
+  info "Uninstalled successfully"
+
+  exit 0
+}
+
+function uninstallSparkOperator() {
+  info "Going to uninstall Spark Operator"
+
+  helm uninstall $SPARK_OPERATOR_RELEASE_NAME --namespace $SPARK_OPERATOR_NAMESPACE
+
+  if [ $? -gt 0 ]; then
+    printf "\n\n\t\t"
+    error "ERROR: Couldn't uninstall Spark Operator. Please check the error message above"
+    exit 1
+  fi
+}
+
+function uninstallSparkHistory() {
+  info "Going to uninstall Spark History"
+
+  helm uninstall $SPARK_HISTORY_RELEASE_NAME --namespace $SPARK_APPLICATIONS_NAMESPACE
+
+  if [ $? -gt 0 ]; then
+    printf "\n\n\t\t"
+    error "ERROR: Couldn't uninstall Spark History. Please check the error message above"
+    exit 1
+  fi
+}
+
+function uninstallEfsProvisioner() {
+  if [ "$EFS_ENABLED" = false ]; then
+    info "efsEbabled set to false. EFS Provisioner won't be uninstalled"
+    return 0
+  fi
+
+  info "Going to uninstall EFS Provisioner"
+
+  helm uninstall $EFS_PROVISIONER_RELEASE_NAME --namespace $SPARK_APPLICATIONS_NAMESPACE
+
+  if [ $? -gt 0 ]; then
+    printf "\n\n\t\t"
+    error "ERROR: Couldn't uninstall EFS Provisioner. Please check the error message above"
+    exit 1
+  fi
+
+  if [ "$PVC_ENABLED" = false ]; then
+    info "pvcEbabled set to false. PVC $WAVE_PVC_NAME won't be deleted"
+    return 0
+  fi
+
+  info "Going to delete PVC"
+  kubectl delete pvc $WAVE_PVC_NAME -n $SPARK_APPLICATIONS_NAMESPACE
+
+  if [ $? -gt 0 ]; then
+    printf "\n\n\t\t"
+    error "ERROR: Couldn't delete PVC. Please check the error message above"
+    exit 1
+  fi
 }
 
 log_level_for() {
@@ -250,6 +329,10 @@ function init() {
       DRY_RUN="$2"
       shift
       ;;
+    --uninstall)
+      UNINSTALL="$2"
+      shift
+      ;;
     *)
       usage
       ;;
@@ -258,11 +341,12 @@ function init() {
   done
 
   if [ "$DRY_RUN" = true ]; then
-      LOG_LEVEL="debug"
+    LOG_LEVEL="debug"
   fi
 }
 
 function main() {
+  uninstall
   validation
   createNamespaces
   efsProvisioner
