@@ -72,19 +72,9 @@ function efsProvisioner() {
   info "AWS Region: ($EFS_AWS_REGION)"
   printf "\n"
 
-  if [ -z "$EFS_FILESYSTEM_ID" ]; then
-    error "efsProvisioner.efsFileSystemId is empty EXIT"
-    return 1
-  fi
-
-  if [ -z "$EFS_AWS_REGION" ]; then
-    error "efsProvisioner.awsRegion is empty. EXIT"
-    return 1
-  fi
-
   helm repo add stable https://kubernetes-charts.storage.googleapis.com
 
-  helm install $EFS_PROVISIONER_RELEASE_NAME $($DRY_RUN && echo  "--dry-run --debug") stable/efs-provisioner \
+  helm install $EFS_PROVISIONER_RELEASE_NAME $($DRY_RUN && echo "--dry-run --debug") stable/efs-provisioner \
     --namespace $SPARK_APPLICATIONS_NAMESPACE \
     --set efsProvisioner.provisionerName=$EFS_PROVISIONER_NAME \
     --set serviceAccount.name=$EFS_PROVISIONER_SERVICE_ACCOUNT_NAME \
@@ -95,7 +85,7 @@ function efsProvisioner() {
   if [ $? -gt 0 ]; then
     printf "\n\n\t\t"
     error "EFS Provisioner not installed. Please check the error message above"
-    return 1
+    exit 1
   fi
 
   #Create PVC
@@ -119,14 +109,14 @@ function createPvc() {
   )"
 
   finalPvcYaml=$(cat wave-pvc-sparkhistory.yaml)
-  debug "PVC yaml from template was created:\n $finalPvcYaml"
+  debug "wave-pvc-sparkhistory.yaml\n $finalPvcYaml"
 
   kubectl apply -f wave-pvc-sparkhistory.yaml
 
   if [ $? -gt 0 ]; then
     printf "\n\n\t\t"
-    error "PVC not created. Please check the error message above"
-    return 1
+    error "ERROR: PVC not created. Please check the error message above"
+    exit 1
   fi
 
   #Remove tmp result PVC yaml
@@ -139,7 +129,7 @@ function sparkHistory() {
 
   helm repo add stable https://kubernetes-charts.storage.googleapis.com
 
-  helm install $SPARK_HISTORY_RELEASE_NAME $($DRY_RUN && echo  "--dry-run --debug") stable/spark-history-server \
+  helm install $SPARK_HISTORY_RELEASE_NAME $($DRY_RUN && echo "--dry-run --debug") stable/spark-history-server \
     --namespace $SPARK_APPLICATIONS_NAMESPACE \
     --set nfs.enableExampleNFS=false \
     --set pvc.enablePVC=$PVC_ENABLED \
@@ -147,8 +137,8 @@ function sparkHistory() {
 
   if [ $? -gt 0 ]; then
     printf "\n\n\t\t"
-    error "Spark Histroy Server not installed. Please check the error message above"
-    return 1
+    error "ERROR: Spark Histroy Server not installed. Please check the error message above"
+    exit 1
   fi
 }
 
@@ -158,16 +148,36 @@ function sparkOperator() {
 
   helm repo add incubator http://storage.googleapis.com/kubernetes-charts-incubator
 
-  helm install $SPARK_OPERATOR_RELEASE_NAME $($DRY_RUN && echo  "--dry-run --debug") incubator/sparkoperator \
+  helm install $SPARK_OPERATOR_RELEASE_NAME $($DRY_RUN && echo "--dry-run --debug") incubator/sparkoperator \
     --namespace $SPARK_OPERATOR_NAMESPACE \
     --set sparkJobNamespace=$SPARK_APPLICATIONS_NAMESPACE \
     --set enableWebhook=true
 
   if [ $? -gt 0 ]; then
     printf "\n\n\t\t"
-    error "Spark Operator not installed. Please check the error message above"
-    return 1
+    error "ERROR: Spark Operator not installed. Please check the error message above"
+    exit 1
   fi
+}
+
+function validation() {
+  #Validate EFS mandatory parameters if efsEnambled
+  if [ "$EFS_ENABLED" = true ]; then
+    if [ -z "$EFS_FILESYSTEM_ID" ]; then
+      error "ERROR: efsProvisioner.efsFileSystemId is empty EXIT"
+      exit 1
+    fi
+
+    if [ -z "$EFS_AWS_REGION" ]; then
+      error "ERROR: efsProvisioner.awsRegion is empty. EXIT"
+      exit 1
+    fi
+  fi
+
+  if [ -z "$EFS_FILESYSTEM_ID" ]; then
+      error "ERROR: efsProvisioner.efsFileSystemId is empty EXIT"
+      exit 1
+    fi
 }
 
 log_level_for() {
@@ -246,9 +256,14 @@ function init() {
     esac
     shift
   done
+
+  if [ "$DRY_RUN" = true ]; then
+      LOG_LEVEL="debug"
+  fi
 }
 
 function main() {
+  validation
   createNamespaces
   efsProvisioner
   sparkHistory
