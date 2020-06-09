@@ -9,17 +9,17 @@ LOG_LEVEL="info"
 #PVC yaml template URL
 PVC_YAML_TEMPLATE="https://raw.githubusercontent.com/alextarasov-spot/wave-sparkhistory-helm-chart/master/wave-pvc-sparkhistory-template.yaml"
 
-#EFS provosioner DEFAULT parameters
+#EFS provisioner DEFAULT parameters
 EFS_ENABLED=false
 PVC_ENABLED=true
 WAVE_PVC_NAME="wave-efs"
 
 EFS_PROVISIONER_RELEASE_NAME="wave-nfs"
-EFS_PROVISIONER_SERVICE_ACCOUNT_NAME="wave-efs-provosioner"
+EFS_PROVISIONER_SERVICE_ACCOUNT_NAME="wave-efs-provisioner"
 EFS_PROVISIONER_NAME="wave.sparkhistory/aws-efs"
 WAVE_EFS_PROVISIONER_STORAGE_CLASS_NAME="wave-aws-efs"
 
-#EFS provosioner MANDATORY parameters
+#EFS provisioner MANDATORY parameters
 EFS_FILESYSTEM_ID=""
 EFS_AWS_REGION=""
 
