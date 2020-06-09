@@ -183,7 +183,8 @@ function uninstall() {
     return 0
   fi
 
-  warn "WARNING: You gonna uninstall all necessarry resources!"
+  warn "WARNING: You are about to uninstall resources creaed by Wave!
+        This includes Sprak-Operator,Spark-History and wave-applications namespaces"
 
   echo "Do you want to uninstall?"
 
@@ -302,14 +303,30 @@ info() {
   [ $(log_level_for "info") -le $(current_log_level) ] && echo "${1}" >&2
 }
 
+function usage() {
+	cat <<EOF
+Install and configure all prereuisit for Wave product by Spot
+Usage:
+  ${0} [flags]
+Flags:
+  --efs-enabled         Enable EFS for spark history setup
+  --efs-file-system-id  EFS FileSystemID for spark history Setup
+  --efsAwsRegion        EFS Region location
+  --pvc-enabled         creating PVC for spark history deployment
+  --dry-run             
+  --uninstall           Delete all deployments/configs installed by Wave
+EOF
+    exit 1
+}
+
 function init() {
   while [[ $# -gt 0 ]]; do
     case ${1} in
-    --efsEbabled)
+    --efs-enabled)
       EFS_ENABLED="$2"
       shift
       ;;
-    --efsFileSystemId)
+    --efs-file-system-id)
       EFS_FILESYSTEM_ID="$2"
       shift
       ;;
@@ -321,11 +338,11 @@ function init() {
       EFS_PROVISIONER_NAME="$2"
       shift
       ;;
-    --pvcEnabled)
+    --pvc-enabled)
       PVC_ENABLED="$2"
       shift
       ;;
-    --dryRun)
+    --dry-run)
       DRY_RUN="$2"
       shift
       ;;
