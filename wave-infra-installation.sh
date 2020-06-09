@@ -305,15 +305,15 @@ info() {
 
 function usage() {
 	cat <<EOF
-Install and configure all prereuisit for Wave product by Spot
+Install and configure all prerequisites for Wave product by Spot
 Usage:
   ${0} [flags]
 Flags:
   --efs-enabled         Enable EFS for spark history setup
   --efs-file-system-id  EFS FileSystemID for spark history Setup
-  --efsAwsRegion        EFS Region location
+  --efs-aws-region      EFS Region location
   --pvc-enabled         creating PVC for spark history deployment
-  --dry-run             
+  --dry-run
   --uninstall           Delete all deployments/configs installed by Wave
 EOF
     exit 1
@@ -330,7 +330,7 @@ function init() {
       EFS_FILESYSTEM_ID="$2"
       shift
       ;;
-    --efsAwsRegion)
+    --efs-aws-region)
       EFS_AWS_REGION="$2"
       shift
       ;;
